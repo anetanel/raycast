@@ -6,13 +6,35 @@ class Player:
     def __init__(self, x, y):
         self.color = "yellow"
         self.size = 10
-        self.rect = pygame.Rect([x - self.size // 2, y - self.size // 2, self.size, self.size])
+        self.rect = Rect([x - self.size // 2, y - self.size // 2, self.size, self.size])
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.rect)
 
     def move(self, x=0, y=0):
         self.rect = self.rect.move(x, y)
+
+
+class Map:
+    def __init__(self, map_list: list[list]):
+        self.map = map_list
+        self.cube_size = 64
+        self.rect_map = self._create_rects()
+        self.colors = {0: 'black', 1: 'white'}
+
+    def _create_rects(self):
+        import copy
+        rect_map = copy.deepcopy(self.map)
+        for row_idx, row in enumerate(self.map):
+            for col_idx, cell in enumerate(row):
+                rect_map[row_idx][col_idx] = Rect(
+                    [col_idx * self.cube_size, row_idx * self.cube_size, self.cube_size-1, self.cube_size-1])
+        return rect_map
+
+    def draw(self, surface):
+        for row_idx, row in enumerate(self.map):
+            for col_idx, cell_color in enumerate(row):
+                pygame.draw.rect(surface, self.colors[cell_color], self.rect_map[row_idx][col_idx])
 
 
 class App:
@@ -24,30 +46,40 @@ class App:
         self.player = Player(width // 2, height // 2)
         self.clock = pygame.time.Clock()
         self.fps = 60
+        self.map = Map([
+            [1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 0, 1, 1, 1],
+            [1, 0, 1, 0, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 1, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1],
+        ])
 
     def on_init(self):
         pygame.init()
         pygame.display.set_caption(self._caption)
-        self.screen = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
+        self.screen = pygame.display.set_mode(self.size, HWSURFACE | DOUBLEBUF)
 
     def on_event(self, event):
-        if event.type == pygame.QUIT:
+        if event.type == QUIT:
             self._running = False
 
     def on_loop(self):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
+        if keys[K_LEFT]:
             self.player.move(x=-5)
-        if keys[pygame.K_RIGHT]:
+        if keys[K_RIGHT]:
             self.player.move(x=5)
-        if keys[pygame.K_UP]:
+        if keys[K_UP]:
             self.player.move(y=-5)
-        if keys[pygame.K_DOWN]:
+        if keys[K_DOWN]:
             self.player.move(y=5)
 
     def on_render(self):
         self.screen.fill("gray")
-        # pygame.draw.rect(self.screen, self.player.color, self.player.rect())
+        self.map.draw(self.screen)
         self.player.draw(self.screen)
 
         pygame.display.flip()
