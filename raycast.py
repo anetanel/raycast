@@ -8,7 +8,7 @@ class Player:
         self.color = "yellow"
         self.size = 10
         self.rect = Rect([x - self.size // 2, y - self.size // 2, self.size, self.size])
-        self.rotation = 45
+        self.rotation = 0
         self.dx = math.cos(math.radians(self.rotation))
         # dy is negative sin since screen y coordinates increase downward, unlike Cartesian
         self.dy = -math.sin(math.radians(self.rotation))
@@ -16,7 +16,7 @@ class Player:
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.rect)
-        pygame.draw.line(surface, self.color, self.rect.center, self.view_line, 5)
+        pygame.draw.line(surface, self.color, self.rect.center, self.view_line, 2)
 
     def move(self, d):
         speed = 5
@@ -38,7 +38,7 @@ class Player:
         self.view_line = self._calc_view_line()
 
     def _calc_view_line(self):
-        line_length = 50
+        line_length = 20
         dx = self.rect.centerx + self.dx * line_length
         dy = self.rect.centery + self.dy * line_length
         # print(dx, dy, self.rotation)
@@ -55,11 +55,11 @@ class Player:
         x = math.cos(math.radians(self.rotation + angle))
         y = -math.sin(math.radians(self.rotation + angle))
         # print("rotation ", self.rotation, self.rotation+angle)
-        print("pos ", self.rect.center)
-        print("move by ", x * speed, y * speed)
+        # print("pos ", self.rect.center)
+        # print("move by ", x * speed, y * speed)
 
         self.rect = self.rect.move(round(x * speed), round(y * speed))
-        print("new pos ", self.rect.center)
+        # print("new pos ", self.rect.center)
         self.view_line = self._calc_view_line()
 
 
@@ -91,7 +91,7 @@ class App:
         self.screen = None
         self._caption = caption
         self.size = self.width, self.height = width, height
-        self.player = Player(width // 3, height // 2)
+        self.player = Player(200, 300)
         self.clock = pygame.time.Clock()
         self.fps = 60
         self.map = Map([
