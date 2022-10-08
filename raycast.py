@@ -32,12 +32,13 @@ class Player:
         self.color = "yellow"
         self.size = 5
         self.rect = Rect([self.x, self.y, self.size, self.size])
-        self.rotation = 90
+        self.rotation = 45
         self.dx = math.cos(math.radians(self.rotation))
         # dy is negative sin since screen y coordinates increase downward, unlike Cartesian
         self.dy = -math.sin(math.radians(self.rotation))
         self.view_line = self._calc_view_line()
         self.level_map = level_map
+        self.fov = 60
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.rect)
@@ -110,20 +111,39 @@ class Player:
         for r in range(-30, 30):
             ray_angle = (self.rotation + r) % 360
             ray_slope = math.tan(math.radians(ray_angle))
-            ray_distance = math.sqrt(self.level_map.tile_size ** 2 + ray_slope ** 2)
+            if ray_slope == 0:
+                ray_slope = 0.000001
+            ray_to_x_distance = math.sqrt(self.level_map.tile_size ** 2 + ray_slope ** 2)
+            ray_to_y_distance = math.sqrt(self.level_map.tile_size ** 2 + 1 / ray_slope ** 2)
 
-            if 270 < ray_angle < 360 or 0 <= ray_angle <= 90:
-                ray_x = self.rect.centerx + self.level_map.tile_size
-                ray_y = self.rect.centery - ray_slope * ray_distance
-            else:
-                ray_x = self.rect.centerx - self.level_map.tile_size
-                ray_y = self.rect.centery + ray_slope * ray_distance
+            if 270 < ray_angle < 360 or 0 <= ray_angle <= 90:  # looking right
+                ray_to_x_x = self.rect.centerx + self.level_map.tile_size
+                ray_to_x_y = self.rect.centery - ray_slope * ray_to_x_distance
+
+            else:  # looking left
+                ray_to_x_x = self.rect.centerx - self.level_map.tile_size
+                ray_to_x_y = self.rect.centery + ray_slope * ray_to_x_distance
+
             if ray_angle == 90:
-                ray_y = -999999
+                ray_to_x_y = -999999
 
-            # print(self.rotation, r, ray_angle, ray_slope, ray_y, ray_x)
+            if 0 < ray_angle < 180:  # looking up
+                ray_to_y_y = self.rect.centery - self.level_map.tile_size
+                ray_to_y_x = self.rect.centerx + 1 / ray_slope * ray_to_y_distance
+            else:  # looking down
+                ray_to_y_y = self.rect.centery + self.level_map.tile_size
+                ray_to_y_x = self.rect.centerx - 1 / ray_slope * ray_to_y_distance
+            if ray_angle == 180:
+                ray_to_y_x = -999999
 
-            pygame.draw.line(surface, 'green', self.rect.center, (ray_x, ray_y))
+            # print("rotation:", self.rotation,
+            #       "r value:", r,
+            #       "ray angle:", ray_angle,
+            #       "ray slope:", ray_slope,
+            #       "ray x, y:", ray_to_y_x, ray_to_y_y)
+
+            pygame.draw.line(surface, 'green', self.rect.center, (ray_to_x_x, ray_to_x_y))
+            pygame.draw.line(surface, 'red', self.rect.center, (ray_to_y_x, ray_to_y_y))
 
 
 class App:
