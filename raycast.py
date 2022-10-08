@@ -32,7 +32,7 @@ class Player:
         self.color = "yellow"
         self.size = 5
         self.rect = Rect([self.x, self.y, self.size, self.size])
-        self.rotation = 0
+        self.rotation = 90
         self.dx = math.cos(math.radians(self.rotation))
         # dy is negative sin since screen y coordinates increase downward, unlike Cartesian
         self.dy = -math.sin(math.radians(self.rotation))
@@ -58,25 +58,25 @@ class Player:
         new_map_x, new_map_y = self._map_location(self.x, self.y)
 
         # Collision detection
-        if self.level_map.map[new_map_y][new_map_x] != 0:   # is new position colliding with a wall?
+        if self.level_map.map[new_map_y][new_map_x] != 0:  # is new position colliding with a wall?
             # Enable wall gliding
-            if org_map_x != new_map_x and org_map_y != new_map_y:   # Trying to move between tiles on both x and y
+            if org_map_x != new_map_x and org_map_y != new_map_y:  # Trying to move between tiles on both x and y
                 test_x, test_y = self._map_location(org_x, self.y)  # Can we move on the y-axis?
                 if self.level_map.map[test_y][test_x] != 0:
-                    self.y = org_y                                  # If not, keep y position
+                    self.y = org_y  # If not, keep y position
                 test_x, test_y = self._map_location(self.x, org_y)  # Can we move on the x-axis?
                 if self.level_map.map[test_y][test_x] != 0:
-                    self.x = org_x                                  # If not, keep x position
-            elif org_map_x != new_map_x:                            # Colliding move between tiles on x-axis
-                self.x = org_x                                      # so hold x position
-            elif org_map_y != new_map_y:                            # Colliding move between tiles on y-axis
-                self.y = org_y                                      # so hold y position
+                    self.x = org_x  # If not, keep x position
+            elif org_map_x != new_map_x:  # Colliding move between tiles on x-axis
+                self.x = org_x  # so hold x position
+            elif org_map_y != new_map_y:  # Colliding move between tiles on y-axis
+                self.y = org_y  # so hold y position
 
         self.rect.update(self.x, self.y, self.size, self.size)
         self.view_line = self._calc_view_line()
 
     def rotate(self, n):
-        speed = 4
+        speed = 1
         self.rotation = (self.rotation + n * speed) % 360
         self.dx = math.cos(math.radians(self.rotation))
         self.dy = -math.sin(math.radians(self.rotation))
@@ -106,6 +106,25 @@ class Player:
         self.rect.update(self.x, self.y, self.size, self.size)
         self.view_line = self._calc_view_line()
 
+    def draw_ray(self, surface):
+        for r in range(-30, 30):
+            ray_angle = (self.rotation + r) % 360
+            ray_slope = math.tan(math.radians(ray_angle))
+            ray_distance = math.sqrt(self.level_map.tile_size ** 2 + ray_slope ** 2)
+
+            if 270 < ray_angle < 360 or 0 <= ray_angle <= 90:
+                ray_x = self.rect.centerx + self.level_map.tile_size
+                ray_y = self.rect.centery - ray_slope * ray_distance
+            else:
+                ray_x = self.rect.centerx - self.level_map.tile_size
+                ray_y = self.rect.centery + ray_slope * ray_distance
+            if ray_angle == 90:
+                ray_y = -999999
+
+            # print(self.rotation, r, ray_angle, ray_slope, ray_y, ray_x)
+
+            pygame.draw.line(surface, 'green', self.rect.center, (ray_x, ray_y))
+
 
 class App:
     def __init__(self, width, height, caption):
@@ -125,7 +144,7 @@ class App:
             [1, 0, 0, 0, 0, 1, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
         ])
-        self.player = Player(x=64, y=128, level_map=self.map)
+        self.player = Player(x=64 * 5, y=64 * 5, level_map=self.map)
 
     def on_init(self):
         pygame.init()
@@ -156,6 +175,7 @@ class App:
     def on_render(self):
         self.screen.fill("gray")
         self.map.draw(self.screen)
+        self.player.draw_ray(self.screen)
         self.player.draw(self.screen)
 
         pygame.display.flip()
