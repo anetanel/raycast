@@ -6,7 +6,10 @@ import math
 class Map:
     def __init__(self, map_list: list[list]):
         self.map = map_list
-        self.tile_size = 64
+        self.tile_size = 32
+        self.screen_x_offset = 2
+        self.screen_y_offset = 4
+        self.map_coordinates = self._get_map_coordinates()
         self.rect_map = self._create_rects()
         self.colors = {0: 'black', 1: 'white', 2: 'magenta'}
 
@@ -16,7 +19,8 @@ class Map:
         for row_idx, row in enumerate(self.map):
             for col_idx, cell in enumerate(row):
                 rect_map[row_idx][col_idx] = Rect(
-                    [col_idx * self.tile_size, row_idx * self.tile_size, self.tile_size - 1, self.tile_size - 1])
+                    [col_idx * self.tile_size + self.tile_size * self.screen_x_offset, row_idx * self.tile_size + self.tile_size * self.screen_y_offset,
+                     self.tile_size - 1, self.tile_size - 1])
         return rect_map
 
     def draw(self, surface):
@@ -24,11 +28,32 @@ class Map:
             for col_idx, cell_color in enumerate(row):
                 pygame.draw.rect(surface, self.colors[cell_color], self.rect_map[row_idx][col_idx])
 
+    def _get_map_coordinates(self):
+        c = dict()
+        c['x1'] = self.screen_x_offset * self.tile_size
+        c['y1'] = self.screen_y_offset * self.tile_size
+        c['x2'] = c['x1'] + len(self.map) * self.tile_size
+        c['y2'] = c['y1'] + len(self.map[0]) * self.tile_size
+
+        return c
+
+
+def clamp_to_range(c, r1, r2):
+    if c < r1:
+        return r1
+    elif c >= r2:
+        return r2 - 1
+    else:
+        return c
+
 
 class Player:
     def __init__(self, x, y, level_map: Map):
-        self.x = x
-        self.y = y
+        self.level_map = level_map
+        self.screen_x_offset = level_map.tile_size * level_map.screen_x_offset
+        self.screen_y_offset = level_map.tile_size * level_map.screen_y_offset
+        self.x = x + self.screen_x_offset
+        self.y = y + self.screen_y_offset
         self.color = "yellow"
         self.size = 5
         self.rect = Rect([self.x, self.y, self.size, self.size])
@@ -37,7 +62,6 @@ class Player:
         # dy is negative sin since screen y coordinates increase downward, unlike Cartesian
         self.dy = -math.sin(math.radians(self.rotation))
         self.view_line = self._calc_view_line()
-        self.level_map = level_map
         self.fov = 60
 
     def draw(self, surface):
@@ -91,8 +115,8 @@ class Player:
         return dx, dy
 
     def _map_location(self, x, y):
-        map_x = int(x // self.level_map.tile_size)
-        map_y = int(y // self.level_map.tile_size)
+        map_x = abs(int((x - self.screen_x_offset) // self.level_map.tile_size))
+        map_y = abs(int((y - self.screen_y_offset) // self.level_map.tile_size))
         return map_x, map_y
 
     def strafe(self, direction):
@@ -108,7 +132,7 @@ class Player:
         self.view_line = self._calc_view_line()
 
     def draw_ray(self, surface):
-        for r in range(-30, 30):
+        for r in range(-30,30):
             ray_angle = (self.rotation + r) % 360
             ray_slope = math.tan(math.radians(ray_angle))
             if ray_slope == 0:
@@ -116,34 +140,55 @@ class Player:
             ray_to_x_distance = math.sqrt(self.level_map.tile_size ** 2 + ray_slope ** 2)
             ray_to_y_distance = math.sqrt(self.level_map.tile_size ** 2 + 1 / ray_slope ** 2)
 
-            if 270 < ray_angle < 360 or 0 <= ray_angle <= 90:  # looking right
-                ray_to_x_x = self.rect.centerx + self.level_map.tile_size
-                ray_to_x_y = self.rect.centery - ray_slope * ray_to_x_distance
+            x_step = 1
 
-            else:  # looking left
-                ray_to_x_x = self.rect.centerx - self.level_map.tile_size
-                ray_to_x_y = self.rect.centery + ray_slope * ray_to_x_distance
+            while True:
+                # Check vertical tiles
+                if 270 < ray_angle < 360 or 0 < ray_angle < 90:  # looking right
+                    ray_to_x_x = self.rect.centerx + self.level_map.tile_size * x_step
+                    ray_to_x_y = self.rect.centery - ray_slope * ray_to_x_distance * x_step
 
-            if ray_angle == 90:
-                ray_to_x_y = -999999
+                elif 90 < ray_angle < 270:  # looking left
+                    ray_to_x_x = self.rect.centerx - self.level_map.tile_size * x_step
+                    ray_to_x_y = self.rect.centery + ray_slope * ray_to_x_distance * x_step
+                else:
+                    ray_to_x_x = self.rect.centerx
+                    ray_to_x_y = self.rect.centery
+                    print(ray_to_x_x, ray_to_x_y)
+
+                ray_to_x_x = clamp_to_range(ray_to_x_x, self.level_map.map_coordinates['x1'], self.level_map.map_coordinates['x2'])
+                ray_to_x_y = clamp_to_range(ray_to_x_y, self.level_map.map_coordinates['y1'], self.level_map.map_coordinates['y2'])
+
+                test_x, test_y = self._map_location(ray_to_x_x, ray_to_x_y)
+                print(self.level_map.map_coordinates)
+                print(ray_to_x_x, ray_to_x_y)
+                print(self._map_location(ray_to_x_x, ray_to_x_y))
+                print(self.level_map.map[test_y][test_x])
+                if self.level_map.map[test_y][test_x] == 0:
+                    x_step += 1
+                else:
+                    break
 
             if 0 < ray_angle < 180:  # looking up
                 ray_to_y_y = self.rect.centery - self.level_map.tile_size
                 ray_to_y_x = self.rect.centerx + 1 / ray_slope * ray_to_y_distance
-            else:  # looking down
+            elif 180 < ray_angle < 360:  # looking down
                 ray_to_y_y = self.rect.centery + self.level_map.tile_size
                 ray_to_y_x = self.rect.centerx - 1 / ray_slope * ray_to_y_distance
-            if ray_angle == 180:
-                ray_to_y_x = -999999
+            else:
+                ray_to_y_y = self.rect.centery
+                ray_to_y_x = self.rect.centerx
 
+            ray_to_y_x = clamp_to_range(ray_to_y_x, self.level_map.map_coordinates['x1'], self.level_map.map_coordinates['x2'])
+            ray_to_y_y = clamp_to_range(ray_to_y_y, self.level_map.map_coordinates['y1'], self.level_map.map_coordinates['y2'])
             # print("rotation:", self.rotation,
             #       "r value:", r,
             #       "ray angle:", ray_angle,
             #       "ray slope:", ray_slope,
-            #       "ray x, y:", ray_to_y_x, ray_to_y_y)
+            #       "ray x, y:", ray_to_x_x, ray_to_x_y)
 
-            pygame.draw.line(surface, 'green', self.rect.center, (ray_to_x_x, ray_to_x_y))
-            pygame.draw.line(surface, 'red', self.rect.center, (ray_to_y_x, ray_to_y_y))
+            pygame.draw.line(surface, 'green', self.rect.center, (ray_to_x_x, ray_to_x_y), 3)
+            # pygame.draw.line(surface, 'red', self.rect.center, (ray_to_y_x, ray_to_y_y), 2)
 
 
 class App:
@@ -164,7 +209,7 @@ class App:
             [1, 0, 0, 0, 0, 1, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
         ])
-        self.player = Player(x=64 * 5, y=64 * 5, level_map=self.map)
+        self.player = Player(x=self.map.tile_size * 3, y=self.map.tile_size * 5, level_map=self.map)
 
     def on_init(self):
         pygame.init()
