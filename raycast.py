@@ -72,7 +72,7 @@ class Player:
         speed = 5
         org_x = self.x
         org_y = self.y
-        org_map_x, org_map_y = self._map_location(org_x, org_y)
+
         if direction == 'forward':
             self.x += self.dx * speed
             self.y += self.dy * speed
@@ -80,6 +80,13 @@ class Player:
             self.x -= self.dx * speed
             self.y -= self.dy * speed
 
+        self._wall_collision(org_x, org_y)
+
+        self.rect.update(self.x - self.size // 2, self.y - self.size // 2, self.size, self.size)
+        self.pov_line = self._calc_view_line()
+
+    def _wall_collision(self, org_x, org_y):
+        org_map_x, org_map_y = self._map_location(org_x, org_y)
         new_map_x, new_map_y = self._map_location(self.x, self.y)
 
         # Collision detection
@@ -96,9 +103,6 @@ class Player:
                 self.x = org_x  # so hold x position
             elif org_map_y != new_map_y:  # Colliding move between tiles on y-axis
                 self.y = org_y  # so hold y position
-
-        self.rect.update(self.x - self.size // 2, self.y - self.size // 2, self.size, self.size)
-        self.pov_line = self._calc_view_line()
 
     def rotate(self, n):
         speed = 1
@@ -121,18 +125,21 @@ class Player:
 
     def strafe(self, direction):
         speed = 2
+        org_x = self.x
+        org_y = self.y
         if direction == 'left':
             angle = 90
         else:
             angle = -90
         self.x += math.cos(math.radians(self.rotation + angle)) * speed
         self.y += -math.sin(math.radians(self.rotation + angle)) * speed
+        self._wall_collision(org_x, org_y)
 
         self.rect.update(self.x - self.size // 2, self.y - self.size // 2, self.size, self.size)
         self.pov_line = self._calc_view_line()
 
     def draw_ray(self, surface):
-        for r in range(1):
+        for r in range(-30,30):
             ray_angle = (self.rotation + r) % 360
             ray_slope = math.tan(math.radians(ray_angle))
             if ray_slope == 0:
@@ -151,9 +158,6 @@ class Player:
             elif 90 <= ray_angle <= 270:  # looking left
                 ray_to_x_x = self.x - ax * ray_to_x_step
                 ray_to_x_y = self.y + ray_slope * ray_to_x_step * ax
-            else:
-                ray_to_x_x = self.x
-                ray_to_x_y = self.y
 
             # Check Horizontal (y-axis) tiles
             if 0 <= ray_angle <= 180:  # looking up
@@ -162,9 +166,6 @@ class Player:
             elif 180 <= ray_angle < 360:  # looking down
                 ray_to_y_x = self.x - 1 / ray_slope * ray_to_y_step * (1 - ay)
                 ray_to_y_y = self.y + (1 - ay) * ray_to_y_step
-            else:
-                ray_to_y_x = self.x
-                ray_to_y_y = self.y
 
             # # Check vertical tiles
             # x_step = 1
@@ -240,6 +241,7 @@ class Player:
                 ray_x, ray_y = ray_to_y_x, ray_to_y_y
                 # pygame.draw.line(surface, 'red', self.rect.center, (ray_to_y_x, ray_to_y_y), 2)
             pygame.draw.line(surface, 'green', self.rect.center, (ray_x, ray_y), 3)
+
 
 class App:
     def __init__(self, width, height, caption):
