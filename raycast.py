@@ -57,12 +57,12 @@ class Player:
         self.color = "yellow"
         self.size = 10
         self.rect = Rect([self.x - self.size // 2, self.y - self.size // 2, self.size, self.size])
-        self.rotation = 0
+        self.rotation = 30
         self.dx = math.cos(math.radians(self.rotation))
         # dy is negative sin since screen y coordinates increase downward, unlike Cartesian
         self.dy = -math.sin(math.radians(self.rotation))
         self.pov_line = self._calc_view_line()
-        self.fov = 60
+        self.fov = range(1)
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.rect)
@@ -80,12 +80,12 @@ class Player:
             self.x -= self.dx * speed
             self.y -= self.dy * speed
 
-        self._wall_collision(org_x, org_y)
+        self._check_wall_collision(org_x, org_y)
 
         self.rect.update(self.x - self.size // 2, self.y - self.size // 2, self.size, self.size)
         self.pov_line = self._calc_view_line()
 
-    def _wall_collision(self, org_x, org_y):
+    def _check_wall_collision(self, org_x, org_y):
         org_map_x, org_map_y = self._map_location(org_x, org_y)
         new_map_x, new_map_y = self._map_location(self.x, self.y)
 
@@ -124,7 +124,7 @@ class Player:
         return min(map_x, len(self.level_map.map[0]) - 1), min(map_y, len(self.level_map.map) - 1)
 
     def strafe(self, direction):
-        speed = 2
+        speed = 3
         org_x = self.x
         org_y = self.y
         if direction == 'left':
@@ -133,13 +133,13 @@ class Player:
             angle = -90
         self.x += math.cos(math.radians(self.rotation + angle)) * speed
         self.y += -math.sin(math.radians(self.rotation + angle)) * speed
-        self._wall_collision(org_x, org_y)
+        self._check_wall_collision(org_x, org_y)
 
         self.rect.update(self.x - self.size // 2, self.y - self.size // 2, self.size, self.size)
         self.pov_line = self._calc_view_line()
 
     def draw_ray(self, surface):
-        for r in range(-30,30):
+        for r in self.fov:
             ray_angle = (self.rotation + r) % 360
             ray_slope = math.tan(math.radians(ray_angle))
             if ray_slope == 0:
@@ -152,18 +152,18 @@ class Player:
             ax = (self.x / self.level_map.tile_size) % 1
             ay = (self.y / self.level_map.tile_size) % 1
             # Check Vertical (x-axis) tiles
-            if 270 <= ray_angle < 360 or 0 <= ray_angle < 90:  # looking right
-                ray_to_x_x = self.x + (1 - ax) * ray_to_x_step
-                ray_to_x_y = self.y - ray_slope * ray_to_x_step * (1 - ax)
-            elif 90 <= ray_angle <= 270:  # looking left
+            if 90 <= ray_angle <= 270:  # looking left
                 ray_to_x_x = self.x - ax * ray_to_x_step
                 ray_to_x_y = self.y + ray_slope * ray_to_x_step * ax
+            else:  # looking right
+                ray_to_x_x = self.x + (1 - ax) * ray_to_x_step
+                ray_to_x_y = self.y - ray_slope * ray_to_x_step * (1 - ax)
 
             # Check Horizontal (y-axis) tiles
             if 0 <= ray_angle <= 180:  # looking up
                 ray_to_y_x = self.x + 1 / ray_slope * ray_to_y_step * ay
                 ray_to_y_y = self.y - ay * ray_to_y_step
-            elif 180 <= ray_angle < 360:  # looking down
+            else:  # looking down
                 ray_to_y_x = self.x - 1 / ray_slope * ray_to_y_step * (1 - ay)
                 ray_to_y_y = self.y + (1 - ay) * ray_to_y_step
 
@@ -261,7 +261,7 @@ class App:
             [1, 0, 0, 0, 0, 1, 0, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
         ])
-        self.player = Player(x=self.map.tile_size * 3 + self.map.tile_size // 3, y=self.map.tile_size * 5 + self.map.tile_size // 3, level_map=self.map)
+        self.player = Player(x=self.map.tile_size * 3 + self.map.tile_size // 1, y=self.map.tile_size * 5 + self.map.tile_size // 1, level_map=self.map)
 
     def on_init(self):
         pygame.init()
