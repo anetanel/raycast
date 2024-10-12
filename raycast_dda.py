@@ -9,11 +9,12 @@ SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 MAP_SIZE = 8
 TILE_SIZE = 64
+START_3D_VIEW = MAP_SIZE * TILE_SIZE
 FOV = math.pi / 3
-CASTED_RAYS = 300
+CASTED_RAYS = 1920
 STEP_ANGLE = FOV / CASTED_RAYS
 MAX_DEPTH = 20
-SCALE = (SCREEN_WIDTH - (MAP_SIZE * TILE_SIZE)) // CASTED_RAYS
+SCALE = (SCREEN_WIDTH - START_3D_VIEW) / CASTED_RAYS
 
 # Colors
 WHITE = (255, 255, 255)
@@ -152,7 +153,7 @@ def cast_rays():
 
             # Draw 3D projection
             pygame.draw.rect(screen, (color, color, color),
-                             (MAP_SIZE * TILE_SIZE + ray * SCALE, (SCREEN_HEIGHT - wall_height) // 2,
+                             (START_3D_VIEW + ray * SCALE, (SCREEN_HEIGHT - wall_height) // 2,
                               SCALE + 1, wall_height))
 
     start_angle += STEP_ANGLE
@@ -169,9 +170,10 @@ while running:
             running = False
 
     # Clear the screen
-    screen.fill("black")  # Floor color
-    pygame.draw.rect(screen, "gray30", (MAP_SIZE * TILE_SIZE, 0, SCREEN_WIDTH, SCREEN_HEIGHT // 2))  # Ceiling color
-    pygame.draw.rect(screen, "gray50", (MAP_SIZE* TILE_SIZE, SCREEN_HEIGHT // 2, SCREEN_WIDTH, SCREEN_HEIGHT))  # Floor color
+    screen.fill("black")  # Background color
+    # Draw ceiling and floor
+    pygame.draw.rect(screen, "gray30", (START_3D_VIEW, 0, SCREEN_WIDTH - START_3D_VIEW, SCREEN_HEIGHT // 2))  # Ceiling color
+    pygame.draw.rect(screen, "gray50", (START_3D_VIEW, SCREEN_HEIGHT // 2, SCREEN_WIDTH - START_3D_VIEW, SCREEN_HEIGHT // 2))  # Floor color
 
     # Draw the 2D map
     draw_map()
