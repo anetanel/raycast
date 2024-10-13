@@ -9,11 +9,25 @@ casted_rays = 120
 grayscale = True
 font = pygame.Font(None, 55)
 
+# Map
+# 1: Wall, 0: Empty space, 2: Hidden wall
+map_grid = [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 0, 1],
+    [1, 0, 2, 0, 0, 1, 0, 0, 1],
+    [1, 0, 1, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 0, 1, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1]
+]
+map_colors = {0: "black", 1: "white", 2: "yellow"}
+
 # Constants
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
-MAP_WIDTH = 8
-MAP_HEIGHT = 8
+MAP_WIDTH = len(map_grid[0])
+MAP_HEIGHT = len(map_grid)
 TILE_SIZE = 64
 START_3D_VIEW = MAP_WIDTH * TILE_SIZE
 VIEWABLE_WIDTH = SCREEN_WIDTH - START_3D_VIEW
@@ -28,21 +42,6 @@ player_angle = 0
 PLAYER_SPEED = 5
 PLAYER_ROTATION_SPEED = 0.03
 PLAYER_SIZE = 16  # Size of the player's collision box
-
-# STEP_ANGLE = FOV / casted_rays
-# SCALE = (SCREEN_WIDTH - START_3D_VIEW) / casted_rays
-# Map
-map_grid = [
-    [1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 1, 1, 0, 1, 0, 1],
-    [1, 0, 2, 0, 0, 1, 0, 1],
-    [1, 0, 1, 0, 0, 0, 0, 1],
-    [1, 0, 1, 0, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1]
-]
-map_colors = {0: "black", 1: "white", 2: "yellow"}
 
 # Number of checks in each frame
 number_of_checks = 0
