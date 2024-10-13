@@ -11,7 +11,7 @@ MAP_SIZE = 8
 TILE_SIZE = 64
 START_3D_VIEW = MAP_SIZE * TILE_SIZE
 FOV = math.pi / 3
-CASTED_RAYS = 1920
+CASTED_RAYS = 120
 STEP_ANGLE = FOV / CASTED_RAYS
 MAX_DEPTH = 20
 SCALE = (SCREEN_WIDTH - START_3D_VIEW) / CASTED_RAYS
@@ -156,7 +156,7 @@ def cast_rays():
                              (START_3D_VIEW + ray * SCALE, (SCREEN_HEIGHT - wall_height) // 2,
                               SCALE + 1, wall_height))
 
-    start_angle += STEP_ANGLE
+    # start_angle += STEP_ANGLE
 
 # Game loop
 clock = pygame.time.Clock()
