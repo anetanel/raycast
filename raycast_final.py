@@ -3,11 +3,13 @@ import math
 
 # Initialize Pygame
 pygame.init()
+pygame.display.set_caption("Raycasting POC")
 use_dda = False
 show_blobs = False
 casted_rays = 120
 grayscale = True
 font = pygame.Font(None, 55)
+show_stats = False
 
 # Map
 # 1: Wall, 0: Empty space, 2: Hidden wall
@@ -18,6 +20,7 @@ map_grid = [
     [1, 0, 2, 0, 0, 1, 0, 0, 1],
     [1, 0, 1, 0, 0, 0, 0, 0, 1],
     [1, 0, 1, 0, 1, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
@@ -316,7 +319,7 @@ def calc_fps():
 
 
 def handle_events():
-    global use_dda, show_blobs, running, casted_rays, grayscale
+    global use_dda, show_blobs, running, casted_rays, grayscale, show_stats
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -341,6 +344,9 @@ def handle_events():
             if event.key == pygame.K_ESCAPE:
                 running = False
 
+            if event.key == pygame.K_s:
+                show_stats = not show_stats
+
 
 def update_text():
     text = f"""
@@ -353,8 +359,8 @@ DDA: {use_dda}
 """
     text_surface = font.render(text, True, "yellow2")
     screen.blit(text_surface, dest=(0, SCREEN_HEIGHT // 2))
-    pygame.display.set_caption(
-        f"FPS: {locked_fps}, Theoretical FPS: {theoretical_fps}, Checks per Frame: {number_of_checks}, DDA: {use_dda}, Rays: {casted_rays}")
+    # pygame.display.set_caption(
+    #     f"FPS: {locked_fps}, Theoretical FPS: {theoretical_fps}, Checks per Frame: {number_of_checks}, DDA: {use_dda}, Rays: {casted_rays}")
 
 
 
@@ -366,8 +372,9 @@ while running:
     draw_map()
     cast_rays()
     draw_player()
-    locked_fps, theoretical_fps = calc_fps()
-    update_text()
+    if show_stats:
+        locked_fps, theoretical_fps = calc_fps()
+        update_text()
 
     pygame.display.flip()
     clock.tick(TARGET_FPS)
