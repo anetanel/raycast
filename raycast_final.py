@@ -77,6 +77,20 @@ def draw_ray(player_x, player_y, target_x, target_y):
     pygame.draw.line(screen, "yellow", (player_x, player_y), (target_x, target_y))
 
 
+def set_wall_color(wall_height, target_x, target_y, row, col):
+    if grayscale:
+        # Calculate wall color based on distance
+        color = wall_height / SCREEN_HEIGHT * 220
+        wall_color = (color, color, color)
+    else:
+        # Check if the ray is hitting a grid intersection to color walls boundary
+        if math.isclose(target_x / TILE_SIZE, round(target_x / TILE_SIZE), abs_tol=0.03) and math.isclose(
+                target_y / TILE_SIZE, round(target_y / TILE_SIZE), abs_tol=0.03):
+            wall_color = "black"
+        else:
+            wall_color = map_colors[map_grid[row][col]]
+    return wall_color
+
 def cast_ray_naive(start_angle, step_angle, wall_width_scale):
     global number_of_checks
     for ray in range(casted_rays):
@@ -113,24 +127,7 @@ def cast_ray_naive(start_angle, step_angle, wall_width_scale):
                 wall_width = wall_width_scale
                 wall_x = START_3D_VIEW + ray * wall_width
 
-                # Color the wall based on depth
-                # if grayscale:
-                #     brightness_factor = int(255 / (1 + depth * depth * 0.0001))
-                #     wall_color = pygame.Color(brightness_factor, brightness_factor, brightness_factor)
-                #     if ray == casted_rays // 2:
-                #         print(f"Ray: {ray}, depth: {(depth * depth * 0.0001)}, Color: {brightness_factor}")
-                # else:
-                #     # Check if the ray is hitting a grid intersection to color walls boundary
-                #     if math.isclose(target_x / TILE_SIZE, round(target_x / TILE_SIZE), abs_tol=0.03) and math.isclose(
-                #             target_y / TILE_SIZE, round(target_y / TILE_SIZE), abs_tol=0.03):
-                #         wall_color = "black"
-                #     else:
-                #         wall_color = map_colors[map_grid[row][col]]
-
-                # Calculate wall color based on distance
-                color = wall_height / SCREEN_HEIGHT * 220
-                wall_color = (color, color, color)
-
+                wall_color = set_wall_color(wall_height, target_x, target_y, row, col)
                 pygame.draw.rect(screen, wall_color,
                                  (wall_x, (SCREEN_HEIGHT - wall_height) / 2,
                                   wall_width + 1, wall_height))
@@ -226,26 +223,22 @@ def cast_rays_dda(start_angle, step_angle, wall_width_scale):
             # Fisheye correction
             correct_dist = wall_distance * math.cos(ray_angle - player_angle)
 
+            # Draw 2D ray
+            end_x = player_x + ray_dir_x * wall_distance * TILE_SIZE
+            end_y = player_y + ray_dir_y * wall_distance * TILE_SIZE
+            if ray % 20 == 0:
+                pygame.draw.line(screen, "yellow", (player_x, player_y), (end_x, end_y))
+
             # Calculate wall height
             wall_height = int(SCREEN_HEIGHT / correct_dist)
             if wall_height > SCREEN_HEIGHT:
                 wall_height = SCREEN_HEIGHT
 
-            # Calculate wall color based on distance
-            color = wall_height / SCREEN_HEIGHT * 220
-
-            # Draw 2D ray
-            if ray % 20 == 0:
-                end_x = player_x + ray_dir_x * wall_distance * TILE_SIZE
-                end_y = player_y + ray_dir_y * wall_distance * TILE_SIZE
-                pygame.draw.line(screen, "yellow", (player_x, player_y), (end_x, end_y))
-
             # Draw 3D projection
-            pygame.draw.rect(screen, (color, color, color),
+            wall_color = set_wall_color(wall_height, end_x, end_y, map_y, map_x)
+            pygame.draw.rect(screen, wall_color,
                              (START_3D_VIEW + ray * wall_width_scale, (SCREEN_HEIGHT - wall_height) // 2,
                               wall_width_scale + 1, wall_height))
-
-    # start_angle += STEP_ANGLE
 
 
 # Game loop
@@ -262,7 +255,7 @@ def draw_bg():
     pygame.draw.rect(screen, "gray50", (START_3D_VIEW, SCREEN_HEIGHT // 2, VIEWABLE_WIDTH, SCREEN_HEIGHT // 2))  # Floor
 
 
-def is_collision(x, y):
+def is_player_collision(x, y):
     # Check the four corners of the player's collision box
     for offset_x, offset_y in [(0, 0), (PLAYER_SIZE, 0), (0, PLAYER_SIZE), (PLAYER_SIZE, PLAYER_SIZE)]:
         check_x = int((x + offset_x) / TILE_SIZE)
@@ -291,16 +284,16 @@ def move_player():
         if keys[pygame.K_UP]:
             new_x = player_x + dx
             new_y = player_y + dy
-            if not is_collision(new_x, player_y):
+            if not is_player_collision(new_x, player_y):
                 player_x = new_x
-            if not is_collision(player_x, new_y):
+            if not is_player_collision(player_x, new_y):
                 player_y = new_y
         elif keys[pygame.K_DOWN]:
             new_x = player_x - dx
             new_y = player_y - dy
-            if not is_collision(new_x, player_y):
+            if not is_player_collision(new_x, player_y):
                 player_x = new_x
-            if not is_collision(player_x, new_y):
+            if not is_player_collision(player_x, new_y):
                 player_y = new_y
 
 
