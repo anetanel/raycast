@@ -274,9 +274,34 @@ def move_player():
     keys = pygame.key.get_pressed()
 
     if keys[pygame.K_LEFT]:
-        player_angle -= PLAYER_ROTATION_SPEED
+        if keys[pygame.K_LALT] or keys[pygame.K_RALT]:
+            # Strafe left
+            dx = math.cos(player_angle - math.pi / 2) * PLAYER_SPEED
+            dy = math.sin(player_angle - math.pi / 2) * PLAYER_SPEED
+            new_x = player_x + dx
+            new_y = player_y + dy
+            if not is_player_collision(new_x, player_y):
+                player_x = new_x
+            if not is_player_collision(player_x, new_y):
+                player_y = new_y
+        else:
+            # Rotate left
+            player_angle -= PLAYER_ROTATION_SPEED
     elif keys[pygame.K_RIGHT]:
-        player_angle += PLAYER_ROTATION_SPEED
+        if keys[pygame.K_LALT] or keys[pygame.K_RALT]:
+            # Strafe right
+            dx = math.cos(player_angle + math.pi / 2) * PLAYER_SPEED
+            dy = math.sin(player_angle + math.pi / 2) * PLAYER_SPEED
+            new_x = player_x + dx
+            new_y = player_y + dy
+            if not is_player_collision(new_x, player_y):
+                player_x = new_x
+            if not is_player_collision(player_x, new_y):
+                player_y = new_y
+        else:
+            # Rotate right
+            player_angle += PLAYER_ROTATION_SPEED
+
     # Keep angle between 0 and 2*pi
     player_angle %= 2 * math.pi
 
