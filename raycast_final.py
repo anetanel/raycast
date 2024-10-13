@@ -65,12 +65,8 @@ def draw_player():
     # Draw player
     pygame.draw.circle(screen, "red", (int(player_x), int(player_y)), 8)
     # Draw player direction
-    if use_dda:
-        x = player_x + math.cos(player_angle) * 50
-        y = player_y + math.sin(player_angle) * 50
-    else:
-        x = player_x - math.sin(player_angle) * 50
-        y = player_y + math.cos(player_angle) * 50
+    x = player_x + math.cos(player_angle) * 50
+    y = player_y + math.sin(player_angle) * 50
     pygame.draw.line(screen, "red", (player_x, player_y), (x, y), 2)
 
 
@@ -86,8 +82,8 @@ def cast_ray_naive(start_angle, step_angle, wall_width_scale):
     global number_of_checks
     for ray in range(casted_rays):
         for depth in range(MAX_DEPTH):
-            target_x = player_x - math.sin(start_angle) * depth
-            target_y = player_y + math.cos(start_angle) * depth
+            target_x = player_x + math.cos(start_angle) * depth
+            target_y = player_y + math.sin(start_angle) * depth
             col = int(target_x / TILE_SIZE)
             row = int(target_y / TILE_SIZE)
 
@@ -109,27 +105,32 @@ def cast_ray_naive(start_angle, step_angle, wall_width_scale):
                     draw_ray(player_x, player_y, target_x, target_y)
 
                 # 3D wall drawing
-
-                # Color the wall based on depth
-                if grayscale:
-                    brightness_factor = int(255 / (1 + depth * depth * 0.0001))
-                    wall_color = pygame.Color(brightness_factor, brightness_factor, brightness_factor)
-                else:
-                    # Check if the ray is hitting a grid intersection to color walls boundary
-                    if math.isclose(target_x / TILE_SIZE, round(target_x / TILE_SIZE), abs_tol=0.03) and math.isclose(
-                            target_y / TILE_SIZE, round(target_y / TILE_SIZE), abs_tol=0.03):
-                        wall_color = "black"
-                    else:
-                        wall_color = map_colors[map_grid[row][col]]
-
                 depth *= math.cos(player_angle - start_angle)
-                wall_height = 30000 / (depth + 0.0001)
+                wall_height = 70000 / (depth + 0.0001) # 70000 is a magic number to scale the wall height
 
                 if wall_height > SCREEN_HEIGHT:
                     wall_height = SCREEN_HEIGHT
 
                 wall_width = wall_width_scale
                 wall_x = START_3D_VIEW + ray * wall_width
+
+                # Color the wall based on depth
+                # if grayscale:
+                #     brightness_factor = int(255 / (1 + depth * depth * 0.0001))
+                #     wall_color = pygame.Color(brightness_factor, brightness_factor, brightness_factor)
+                #     if ray == casted_rays // 2:
+                #         print(f"Ray: {ray}, depth: {(depth * depth * 0.0001)}, Color: {brightness_factor}")
+                # else:
+                #     # Check if the ray is hitting a grid intersection to color walls boundary
+                #     if math.isclose(target_x / TILE_SIZE, round(target_x / TILE_SIZE), abs_tol=0.03) and math.isclose(
+                #             target_y / TILE_SIZE, round(target_y / TILE_SIZE), abs_tol=0.03):
+                #         wall_color = "black"
+                #     else:
+                #         wall_color = map_colors[map_grid[row][col]]
+
+                # Calculate wall color based on distance
+                color = wall_height / SCREEN_HEIGHT * 220
+                wall_color = (color, color, color)
 
                 pygame.draw.rect(screen, wall_color,
                                  (wall_x, (SCREEN_HEIGHT - wall_height) / 2,
@@ -213,7 +214,7 @@ def cast_rays_dda(start_angle, step_angle, wall_width_scale):
                 toggle_blobs(int(end_x), int(end_y))
 
             # Check if ray has hit a wall
-            if map_x < MAP_WIDTH and map_y < MAP_HEIGHT and map_grid[map_y][map_x] == 1:
+            if map_x < MAP_WIDTH and map_y < MAP_HEIGHT and map_grid[map_y][map_x] != 0:
                 hit = True
 
         if hit:
@@ -228,9 +229,11 @@ def cast_rays_dda(start_angle, step_angle, wall_width_scale):
 
             # Calculate wall height
             wall_height = int(SCREEN_HEIGHT / correct_dist)
+            if wall_height > SCREEN_HEIGHT:
+                wall_height = SCREEN_HEIGHT
 
             # Calculate wall color based on distance
-            color = max(255 - int(correct_dist * TILE_SIZE), 0)
+            color = wall_height / SCREEN_HEIGHT * 220
 
             # Draw 2D ray
             if ray % 20 == 0:
@@ -283,27 +286,23 @@ def move_player():
 
     if keys[pygame.K_UP] or keys[pygame.K_DOWN]:
         # Calculate movement vector
-        if use_dda:
-            dx = math.cos(player_angle) * PLAYER_SPEED
-            dy = math.sin(player_angle) * PLAYER_SPEED
-        else:
-            dx = -math.sin(player_angle) * PLAYER_SPEED
-            dy = math.cos(player_angle) * PLAYER_SPEED
+        dx = math.cos(player_angle) * PLAYER_SPEED
+        dy = math.sin(player_angle) * PLAYER_SPEED
 
-    if keys[pygame.K_UP]:
-        new_x = player_x + dx
-        new_y = player_y + dy
-        if not is_collision(new_x, player_y):
-            player_x = new_x
-        if not is_collision(player_x, new_y):
-            player_y = new_y
-    elif keys[pygame.K_DOWN]:
-        new_x = player_x - dx
-        new_y = player_y - dy
-        if not is_collision(new_x, player_y):
-            player_x = new_x
-        if not is_collision(player_x, new_y):
-            player_y = new_y
+        if keys[pygame.K_UP]:
+            new_x = player_x + dx
+            new_y = player_y + dy
+            if not is_collision(new_x, player_y):
+                player_x = new_x
+            if not is_collision(player_x, new_y):
+                player_y = new_y
+        elif keys[pygame.K_DOWN]:
+            new_x = player_x - dx
+            new_y = player_y - dy
+            if not is_collision(new_x, player_y):
+                player_x = new_x
+            if not is_collision(player_x, new_y):
+                player_y = new_y
 
 
 def calc_fps():
