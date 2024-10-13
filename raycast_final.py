@@ -94,6 +94,7 @@ def set_wall_color(wall_height, target_x, target_y, row, col):
             wall_color = map_colors[map_grid[row][col]]
     return wall_color
 
+
 def cast_ray_naive(start_angle, step_angle, wall_width_scale):
     global number_of_checks
     for ray in range(casted_rays):
@@ -122,7 +123,7 @@ def cast_ray_naive(start_angle, step_angle, wall_width_scale):
 
                 # 3D wall drawing
                 depth *= math.cos(player_angle - start_angle)
-                wall_height = 70000 / (depth + 0.0001) # 70000 is a magic number to scale the wall height
+                wall_height = 70000 / (depth + 0.0001)  # 70000 is a magic number to scale the wall height
 
                 if wall_height > SCREEN_HEIGHT:
                     wall_height = SCREEN_HEIGHT
@@ -361,8 +362,6 @@ DDA: {use_dda}
     screen.blit(text_surface, dest=(0, SCREEN_HEIGHT // 2))
     # pygame.display.set_caption(
     #     f"FPS: {locked_fps}, Theoretical FPS: {theoretical_fps}, Checks per Frame: {number_of_checks}, DDA: {use_dda}, Rays: {casted_rays}")
-
-
 
 
 while running:
