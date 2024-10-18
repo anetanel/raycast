@@ -41,9 +41,9 @@ TARGET_FPS = 60
 # Player initial position and angle
 player_x = 300
 player_y = 300
-player_angle = 0
+player_angle = 0 #
 PLAYER_SPEED = 5
-PLAYER_ROTATION_SPEED = 0.03
+PLAYER_ROTATION_SPEED = math.pi / 90 # 2 degrees per frame (180/90). 120 degrees per second (assuming 60 fps). full rotation in 3 seconds.
 PLAYER_SIZE = 16  # Size of the player's collision box
 
 # Number of checks in each frame
@@ -53,7 +53,7 @@ number_of_checks = 0
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 
-def draw_map():
+def draw_livemap():
     for row in range(MAP_HEIGHT):
         for col in range(MAP_WIDTH):
             pygame.draw.rect(
@@ -67,9 +67,9 @@ def draw_player():
     # Draw player
     pygame.draw.circle(screen, "red", (int(player_x), int(player_y)), 8)
     # Draw player direction
-    x = player_x + math.cos(player_angle) * 50
-    y = player_y + math.sin(player_angle) * 50
-    pygame.draw.line(screen, "red", (player_x, player_y), (x, y), 2)
+    player_pov_x = player_x + math.cos(player_angle) * 50
+    player_pov_y = player_y + math.sin(player_angle) * 50
+    pygame.draw.line(screen, "red", (player_x, player_y), (player_pov_x, player_pov_y), 2)
 
 
 def toggle_blobs(target_x, target_y):
@@ -95,7 +95,7 @@ def set_wall_color(wall_height, target_x, target_y, row, col):
     return wall_color
 
 
-def cast_ray_naive(start_angle, step_angle, wall_width_scale):
+def cast_ray_naive(start_angle, step_angle, wall_width):
     global number_of_checks
     for ray in range(casted_rays):
         for depth in range(MAX_DEPTH):
@@ -116,25 +116,25 @@ def cast_ray_naive(start_angle, step_angle, wall_width_scale):
                 toggle_blobs(target_x, target_y)
 
             # Check wall collision
-            if map_grid[row][col] != 0:
+            if map_grid[row][col] != 0: # 0 is empty space
                 # Draw ray
                 if ray % 20 == 0:
                     draw_ray(player_x, player_y, target_x, target_y)
 
                 # 3D wall drawing
-                depth *= math.cos(player_angle - start_angle)
-                wall_height = 70000 / (depth + 0.0001)  # 70000 is a magic number to scale the wall height
+                wall_distance = depth * math.cos(player_angle - start_angle)
+                wall_height = 70000 / (wall_distance + 0.0001)  # 70000 is a magic number to scale the wall height. 0.0001 is to avoid division by zero.
 
-                if wall_height > SCREEN_HEIGHT:
+                if wall_height > SCREEN_HEIGHT: # Limit wall height to screen height
                     wall_height = SCREEN_HEIGHT
 
-                wall_width = wall_width_scale
                 wall_x = START_3D_VIEW + ray * wall_width
 
                 wall_color = set_wall_color(wall_height, target_x, target_y, row, col)
                 pygame.draw.rect(screen, wall_color,
                                  (wall_x, (SCREEN_HEIGHT - wall_height) / 2,
-                                  wall_width + 1, wall_height))
+                                  wall_width + 1, wall_height)  # +1 to avoid gaps between walls
+                                 )
                 break
         start_angle += step_angle
 
@@ -142,13 +142,13 @@ def cast_ray_naive(start_angle, step_angle, wall_width_scale):
 def cast_rays():
     start_angle = player_angle - FOV / 2
     step_angle = FOV / casted_rays
-    wall_width_scale = VIEWABLE_WIDTH / casted_rays
+    wall_width = VIEWABLE_WIDTH / casted_rays
     global number_of_checks
     number_of_checks = 0
     if use_dda:
-        cast_rays_dda(start_angle, step_angle, wall_width_scale)
+        cast_rays_dda(start_angle, step_angle, wall_width)
     else:
-        cast_ray_naive(start_angle, step_angle, wall_width_scale)
+        cast_ray_naive(start_angle, step_angle, wall_width)
 
 
 def cast_rays_dda(start_angle, step_angle, wall_width_scale):
@@ -164,6 +164,8 @@ def cast_rays_dda(start_angle, step_angle, wall_width_scale):
         # Calculate ray direction vector
         ray_dir_x = math.cos(ray_angle)
         ray_dir_y = math.sin(ray_angle)
+        #if ray == casted_rays // 2:
+        #    print(f"Ray angle: {ray_angle}, dir_x: {ray_dir_x}, dir_y: {ray_dir_y}")
 
         # Calculate step size and initial step
         step_x = 1 if ray_dir_x >= 0 else -1
@@ -189,7 +191,7 @@ def cast_rays_dda(start_angle, step_angle, wall_width_scale):
         side = 0  # 0 for x-side, 1 for y-side
         map_x, map_y = int(player_tile_x), int(player_tile_y)
 
-        while not hit and math.sqrt((map_x - player_tile_x) ** 2 + (map_y - player_tile_y) ** 2) < MAX_DEPTH:
+        while not hit:
             # Increase checks per frame counter
             number_of_checks += 1
 
@@ -214,7 +216,7 @@ def cast_rays_dda(start_angle, step_angle, wall_width_scale):
                 toggle_blobs(int(end_x), int(end_y))
 
             # Check if ray has hit a wall
-            if map_x < MAP_WIDTH and map_y < MAP_HEIGHT and map_grid[map_y][map_x] != 0:
+            if map_grid[map_y][map_x] != 0:
                 hit = True
 
         if hit:
@@ -376,14 +378,15 @@ def handle_events():
 
 def update_text():
     text = f"""
-FPS: {locked_fps}
-Theoretical FPS: {theoretical_fps}
-Checks per Frame: {number_of_checks}
-Rays: {casted_rays}
-
-DDA: {use_dda}
+Stats for Nerds:
+    FPS: {locked_fps}
+    Theoretical FPS: {theoretical_fps}
+    Checks per Frame: {number_of_checks}
+    Rays: {casted_rays}
+    
+    DDA: {use_dda}
 """
-    text_surface = font.render(text, True, "yellow2")
+    text_surface = font.render(text, True, "white")
     screen.blit(text_surface, dest=(0, SCREEN_HEIGHT // 2))
     # pygame.display.set_caption(
     #     f"FPS: {locked_fps}, Theoretical FPS: {theoretical_fps}, Checks per Frame: {number_of_checks}, DDA: {use_dda}, Rays: {casted_rays}")
@@ -393,7 +396,7 @@ while running:
     handle_events()
     draw_bg()
     move_player()
-    draw_map()
+    draw_livemap()
     cast_rays()
     draw_player()
     if show_stats:
